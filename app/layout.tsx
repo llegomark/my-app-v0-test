@@ -7,6 +7,7 @@ import Footer from '@/components/layout/footer';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
 import { LayoutProps } from '@/types/component-types';
+import { SupabaseProvider } from '@/providers/supabase-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,14 +20,16 @@ export default function RootLayout({ children }: LayoutProps): React.ReactElemen
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-grow">
-            {children}
-          </main>
-          <Footer />
-        </div>
-        <Toaster />
+        <SupabaseProvider>
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+          </div>
+          <Toaster />
+        </SupabaseProvider>
       </body>
     </html>
   );

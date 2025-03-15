@@ -1,28 +1,25 @@
-// app/reviewer/results/page.tsx
 "use client";
 
 import React from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { supabase } from '@/lib/supabase/client';
-import { Category } from '@/types';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { useSupabase } from '@/providers/supabase-provider';
 
 export default function ResultsPage(): React.ReactElement {
     const searchParams = useSearchParams();
-    const router = useRouter();
+    const { supabase, user } = useSupabase();
 
     const score = parseInt(searchParams.get('score') || '0');
     const totalQuestions = parseInt(searchParams.get('total') || '1');
     const categoryId = searchParams.get('category');
 
-    const [category, setCategory] = useState<Category | null>(null);
+    const [category, setCategory] = useState<any | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
-    const [userId, setUserId] = useState<string | null>(null);
 
     // Calculate percentage
     const percentage = Math.round((score / totalQuestions) * 100);
@@ -40,15 +37,12 @@ export default function ResultsPage(): React.ReactElement {
     useEffect(() => {
         async function fetchData(): Promise<void> {
             try {
-                // Get the current user
-                const { data: { user } } = await supabase.auth.getUser();
-
+                setLoading(true);
+                // Check if we have a user
                 if (!user) {
-                    router.push('/auth/login');
+                    toast.error("Session expired. Please login again.");
                     return;
                 }
-
-                setUserId(user.id);
 
                 // Fetch the category
                 if (categoryId) {
@@ -62,7 +56,7 @@ export default function ResultsPage(): React.ReactElement {
                         console.error('Error fetching category:', error);
                         toast.error("Failed to load category data");
                     } else {
-                        setCategory(data as Category);
+                        setCategory(data);
                     }
                 }
             } catch (error) {
@@ -74,23 +68,31 @@ export default function ResultsPage(): React.ReactElement {
         }
 
         fetchData();
-    }, [categoryId, router]);
-
-    // Handle retry
-    function handleRetry(): void {
-        if (categoryId) {
-            toast.info("Starting new review session");
-            router.push(`/reviewer/${categoryId}`);
-        }
-    }
-
-    // Handle back to dashboard
-    function handleBackToDashboard(): void {
-        router.push('/dashboard');
-    }
+    }, [categoryId, supabase, user]);
 
     if (loading) {
         return <div className="text-center p-8">Loading results...</div>;
+    }
+
+    // If no user is found, show a message instead of redirecting
+    if (!user) {
+        return (
+            <div className="container mx-auto py-12 max-w-3xl">
+                <Card className="shadow-lg">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl font-bold">Session Expired</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                        <p>Your session has expired. Please login again to view your results.</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-center">
+                        <Button asChild>
+                            <Link href="/auth/login">Login</Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
     }
 
     return (
@@ -145,15 +147,19 @@ export default function ResultsPage(): React.ReactElement {
                     <Button
                         variant="outline"
                         className="w-full sm:w-auto"
-                        onClick={handleRetry}
+                        asChild
                     >
-                        Retry This Category
+                        <Link href={`/reviewer/${categoryId}`}>
+                            Retry This Category
+                        </Link>
                     </Button>
                     <Button
                         className="w-full sm:w-auto"
-                        onClick={handleBackToDashboard}
+                        asChild
                     >
-                        Back to Dashboard
+                        <Link href="/dashboard">
+                            Back to Dashboard
+                        </Link>
                     </Button>
                 </CardFooter>
             </Card>

@@ -1,23 +1,21 @@
-// components/auth/login-form.tsx
 "use client";
 
 import React from 'react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@/lib/validators/auth';
-import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useSupabase } from '@/providers/supabase-provider';
 
 export default function LoginForm(): React.ReactElement {
-    const router = useRouter();
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const { supabase } = useSupabase();
 
     const form = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
@@ -43,13 +41,12 @@ export default function LoginForm(): React.ReactElement {
                 description: "You've been logged in successfully."
             });
 
-            router.push('/dashboard');
-            router.refresh();
+            // Use window.location for a full page reload
+            window.location.href = '/dashboard';
         } catch (error: any) {
             toast.error("Login failed", {
                 description: error.message || "Failed to login. Please try again."
             });
-        } finally {
             setIsLoading(false);
         }
     }

@@ -1,50 +1,20 @@
-// components/layout/header.tsx
 "use client";
 
 import React from 'react';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { useSupabase } from '@/providers/supabase-provider';
 
 export default function Header(): React.ReactElement | null {
     const pathname = usePathname();
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-
-    useEffect(() => {
-        // Check if there's an authenticated user
-        async function getUser(): Promise<void> {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                setUser(user);
-            } catch (error) {
-                console.error('Error getting user:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        getUser();
-
-        // Subscribe to auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                setUser(session?.user ?? null);
-            }
-        );
-
-        return () => {
-            subscription?.unsubscribe();
-        };
-    }, []);
+    const { user, supabase } = useSupabase();
 
     // Handle logout
     async function handleLogout(): Promise<void> {
         try {
             await supabase.auth.signOut();
+            window.location.href = '/';
         } catch (error) {
             console.error('Error signing out:', error);
         }
@@ -65,31 +35,29 @@ export default function Header(): React.ReactElement | null {
                 </div>
 
                 <nav>
-                    {!loading && (
-                        <div className="flex items-center space-x-4">
-                            {user ? (
-                                <>
-                                    <Link href="/dashboard" className={`text-sm font-medium ${pathname === '/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                                        Dashboard
+                    <div className="flex items-center space-x-4">
+                        {user ? (
+                            <>
+                                <Link href="/dashboard" className={`text-sm font-medium ${pathname === '/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+                                    Dashboard
+                                </Link>
+                                <Button variant="outline" size="sm" onClick={handleLogout}>
+                                    Logout
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Link href="/auth/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                                    Login
+                                </Link>
+                                <Button asChild size="sm">
+                                    <Link href="/auth/register">
+                                        Register
                                     </Link>
-                                    <Button variant="outline" size="sm" onClick={handleLogout}>
-                                        Logout
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <Link href="/auth/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                                        Login
-                                    </Link>
-                                    <Button asChild size="sm">
-                                        <Link href="/auth/register">
-                                            Register
-                                        </Link>
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    )}
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </nav>
             </div>
         </header>

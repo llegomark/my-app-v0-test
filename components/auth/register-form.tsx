@@ -1,23 +1,21 @@
-// components/auth/register-form.tsx
 "use client";
 
 import React from 'react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '@/lib/validators/auth';
-import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useSupabase } from '@/providers/supabase-provider';
 
 export default function RegisterForm(): React.ReactElement {
-    const router = useRouter();
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const { supabase } = useSupabase();
 
     const form = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
@@ -51,12 +49,12 @@ export default function RegisterForm(): React.ReactElement {
                 description: "Your account has been created. You can now log in."
             });
 
-            router.push('/auth/login');
+            // Navigate to login page
+            window.location.href = '/auth/login';
         } catch (error: any) {
             toast.error("Registration Failed", {
                 description: error.message || "Failed to create your account. Please try again."
             });
-        } finally {
             setIsLoading(false);
         }
     }

@@ -1,4 +1,3 @@
-// components/reviewer/reviewer-container.tsx
 "use client";
 
 import React from 'react';
@@ -9,10 +8,16 @@ import { Button } from '@/components/ui/button';
 import QuestionTimer from './question-timer';
 import AnswerOption from './answer-option';
 import Explanation from './explanation';
-import { supabase } from '@/lib/supabase/client';
-import { ReviewerContainerProps } from '@/types/component-types';
+import { useSupabase } from '@/providers/supabase-provider';
 import { OptionKey } from '@/types';
 import { toast } from 'sonner';
+import Link from 'next/link';
+
+interface ReviewerContainerProps {
+    categoryId: string;
+    initialQuestions: any[];
+    userId: string;
+}
 
 export default function ReviewerContainer({
     categoryId,
@@ -20,6 +25,7 @@ export default function ReviewerContainer({
     userId
 }: ReviewerContainerProps): React.ReactElement {
     const router = useRouter();
+    const { supabase } = useSupabase();
     const [questions] = useState(initialQuestions);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
     const [selectedOption, setSelectedOption] = useState<OptionKey | null>(null);
@@ -29,6 +35,7 @@ export default function ReviewerContainer({
     const [startTime, setStartTime] = useState<Date | null>(null);
     const [endTime, setEndTime] = useState<Date | null>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isNavigating, setIsNavigating] = useState<boolean>(false);
 
     const currentQuestion = questions[currentQuestionIndex];
     const totalQuestions = questions.length;
@@ -88,7 +95,7 @@ export default function ReviewerContainer({
         }
 
         initSession();
-    }, [userId, categoryId]);
+    }, [userId, categoryId, supabase]);
 
     // Reset state when moving to next question
     useEffect(() => {
@@ -237,6 +244,9 @@ export default function ReviewerContainer({
     // Handle moving to next question or finishing
     async function handleNextQuestion(): Promise<void> {
         if (isLastQuestion) {
+            if (isNavigating) return; // Prevent double clicks
+            setIsNavigating(true);
+
             try {
                 // Update session as completed
                 if (sessionId) {
@@ -265,11 +275,14 @@ export default function ReviewerContainer({
 
                 toast.success("Review completed!");
 
-                // Navigate to results page with score
-                router.push(`/reviewer/results?score=${score}&total=${totalQuestions}&category=${categoryId}`);
+                // Use Link component for navigation instead of router push
+                // to maintain the session state
+                window.location.href = `/reviewer/results?score=${score}&total=${totalQuestions}&category=${categoryId}`;
+
             } catch (error) {
                 console.error('Error finishing reviewer:', error);
                 toast.error("Failed to save your results");
+                setIsNavigating(false);
             }
         } else {
             // Move to next question
@@ -348,7 +361,7 @@ export default function ReviewerContainer({
 
             {(isAnswered || timedOut) && (
                 <div className="flex justify-end">
-                    <Button onClick={handleNextQuestion}>
+                    <Button onClick={handleNextQuestion} disabled={isNavigating}>
                         {isLastQuestion ? "See Results" : "Next Question"}
                     </Button>
                 </div>

@@ -1,4 +1,3 @@
-// components/dashboard/category-card.tsx
 "use client";
 
 import React from 'react';
@@ -7,12 +6,27 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { supabase } from '@/lib/supabase/client';
-import { CategoryCardProps } from '@/types/component-types';
+import { useSupabase } from '@/providers/supabase-provider';
+import { toast } from 'sonner';
 
-export default function CategoryCard({ category, progress }: CategoryCardProps): React.ReactElement {
+interface CategoryCardProps {
+    category: {
+        id: string;
+        name: string;
+        description: string;
+    };
+    progress: {
+        total_questions: number;
+        correct_answers: number;
+        completed: boolean;
+    };
+    userId: string;
+}
+
+export default function CategoryCard({ category, progress, userId }: CategoryCardProps): React.ReactElement {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const { supabase } = useSupabase();
 
     // Calculate progress percentage
     const progressPercentage = progress.total_questions > 0
@@ -22,18 +36,11 @@ export default function CategoryCard({ category, progress }: CategoryCardProps):
     async function startReviewer(): Promise<void> {
         setIsLoading(true);
         try {
-            // Get the current user
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                throw new Error('User not authenticated');
-            }
-
             // Start a new session
             const { error } = await supabase
                 .from('user_sessions')
                 .insert({
-                    user_id: user.id,
+                    user_id: userId,
                     category_id: category.id,
                     start_time: new Date().toISOString(),
                     completed: false
@@ -47,7 +54,7 @@ export default function CategoryCard({ category, progress }: CategoryCardProps):
             router.push(`/reviewer/${category.id}`);
         } catch (error) {
             console.error('Error starting reviewer:', error);
-        } finally {
+            toast.error("Failed to start the reviewer");
             setIsLoading(false);
         }
     }
